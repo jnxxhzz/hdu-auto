@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 
 user = 'jnxxhzzz'
 userpass = '2887678z'
+http_headers = { 'Accept': '*/*','Connection': 'keep-alive', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36'}
 
 class AC_auto(object):
     def __init__(self):
@@ -15,6 +16,15 @@ class AC_auto(object):
         }
         self.session.headers.update(headers)
 
+    def get_real_url(self,url,try_count = 1):
+        rs = requests.get(url,headers=http_headers,timeout=10)
+        while rs.status_code > 400:
+            rs = requests.get(url,headers=http_headers,timeout=10)
+            try_count = try_count + 1
+            if (try_count > 3):
+                break
+        return rs.url
+        
     def login(self, username, password):
         url = 'http://acm.hdu.edu.cn/userloginex.php?action=login'
         data = {
@@ -63,20 +73,22 @@ class AC_auto(object):
         r = baidusession.get(url)
         soup = BeautifulSoup(r.text, 'html.parser')
         res = soup.find_all('a', attrs={'target': '_blank', 'class': 'c-showurl', 'style': 'text-decoration:none;'})
+        csdn = "blog.csdn.net"
         for item in res:
-            if re.match("blog.csdn.net", item.text):
-                solutionurls.append(item['href'])
+            realurl = str(ac.get_real_url(item['href']))
+            if csdn in realurl:
+                solutionurls.append(realurl)
+
         for item in solutionurls:
             r = baidusession.get(item)
             soup = BeautifulSoup(r.text, 'html.parser')
             #print(soup)
-            code = soup.find('pre',attrs={'name': 'code'})
+            code = soup.find('code',attrs={'class': 'language-cpp'})
             if code:
                 solutions.append(code.text)
-                #print(code.text)
         return solutions
     
-    def acc(self, start=6216, end=6263, interval=15):
+    def acc(self, start=6287, end=6500, interval=15):
         language = 0
         for problemID in range(start, end):
             print("Problem",problemID,end=" ")
